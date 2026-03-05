@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing / scratch files
+page.html
+page2.html
+test_scrape.py
+test_scrape3.py
+extract_cities.py
+extract_ar_cities.py
+map_cities.py
+save_html.py
+save_html2.py
+cities_extract.txt
+mapped.json
+ar_cities.json
+
+# Home Assistant
+.storage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

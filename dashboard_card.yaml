@@ -1,0 +1,24 @@
+type: entities
+title: Prayer Times
+icon: mdi:mosque
+entities:
+  - entity: sensor.prayer_date
+    icon: mdi:calendar
+  - entity: sensor.prayer_city
+    icon: mdi:city
+  - type: divider
+  - entity: sensor.prayer_fajr
+    icon: mdi:weather-sunset-up
+  - entity: sensor.prayer_chourouk
+    icon: mdi:weather-sunny-alert
+  - entity: sensor.prayer_dohr
+    icon: mdi:weather-sunny
+  - entity: sensor.prayer_asr
+    icon: mdi:sun-angle-outline
+  - entity: sensor.prayer_maghrib
+    icon: mdi:weather-sunset-down
+  - entity: sensor.prayer_ichaa
+    icon: mdi:weather-night
+  - type: divider
+  - entity: sensor.prayer_next
+    icon: mdi:clock-outline

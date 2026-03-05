@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure your city",
+        "description": "Select your city and the language for prayer names.",
+        "data": {
+          "city": "City",
+          "language": "Language (English or Arabic)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to retrieve data from Habous.gov.ma. Please try again."
+    },
+    "abort": {
+      "already_configured": "Device is already configured."
+    }
+  }
+}
