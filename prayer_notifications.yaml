@@ -1,135 +1,83 @@
-# ============================================================
-# Morocco Prayer Times - Notification Automation
-# ============================================================
-# Copy this file or paste its content into your HA automations.
-#
-# Requirements:
-#   - Morocco Prayer Times integration installed and configured
-#   - A notify service configured (e.g. notify.mobile_app_your_phone)
-#     -> Replace "notify.mobile_app_your_phone" below with your service name
-#
-# How it works:
-#   Each automation triggers exactly at the time stored in the
-#   corresponding prayer sensor (e.g. sensor.prayer_fajr = "05:15").
-#   The notification includes the prayer name, time, and configured city.
-# ============================================================
-
 - id: prayer_times_morocco_fajr
-  alias: "🕌 Prayer Notification - Fajr"
+  alias: "Prayer - Fajr"
   description: "Send a notification when it's time for Fajr prayer"
+  mode: single
   trigger:
     - platform: time
       at: sensor.prayer_fajr
   action:
     - service: notify.mobile_app_your_phone
       data:
-        title: "🌙 {{ states('sensor.prayer_next') }}"
-        message: >
-          It is time for {{ states('sensor.prayer_next') }} prayer.
-          Time: {{ states('sensor.prayer_fajr') }}
-          City: {{ states('sensor.prayer_city') }}
-        data:
-          icon: /local/prayer_times_morocco/icon.png
-          ttl: 0
-          priority: high
-          channel: prayer_times
+        title: "🌙 Prayer Time - {{ states('sensor.prayer_fajr') }}"
+        message: >-
+          {{ states('sensor.prayer_next') }} prayer time in {{ states('sensor.prayer_city') }}.
 
 - id: prayer_times_morocco_chourouk
-  alias: "🕌 Prayer Notification - Sunrise (Chourouk)"
+  alias: "Prayer - Sunrise"
   description: "Send a notification at Sunrise"
+  mode: single
   trigger:
     - platform: time
       at: sensor.prayer_chourouk
   action:
     - service: notify.mobile_app_your_phone
       data:
-        title: "🌅 {{ states('sensor.prayer_next') }}"
-        message: >
-          It is time for {{ states('sensor.prayer_next') }} prayer.
-          Time: {{ states('sensor.prayer_chourouk') }}
-          City: {{ states('sensor.prayer_city') }}
-        data:
-          icon: /local/prayer_times_morocco/icon.png
-          ttl: 0
-          priority: high
-          channel: prayer_times
+        title: "🌅 Prayer Time - {{ states('sensor.prayer_chourouk') }}"
+        message: >-
+          {{ states('sensor.prayer_next') }} prayer time in {{ states('sensor.prayer_city') }}.
 
 - id: prayer_times_morocco_dohr
-  alias: "🕌 Prayer Notification - Dhuhr"
+  alias: "Prayer - Dhuhr"
   description: "Send a notification when it's time for Dhuhr prayer"
+  mode: single
   trigger:
     - platform: time
       at: sensor.prayer_dohr
   action:
     - service: notify.mobile_app_your_phone
       data:
-        title: "☀️ {{ states('sensor.prayer_next') }}"
-        message: >
-          It is time for {{ states('sensor.prayer_next') }} prayer.
-          Time: {{ states('sensor.prayer_dohr') }}
-          City: {{ states('sensor.prayer_city') }}
-        data:
-          icon: /local/prayer_times_morocco/icon.png
-          ttl: 0
-          priority: high
-          channel: prayer_times
+        title: "☀️ Prayer Time - {{ states('sensor.prayer_dohr') }}"
+        message: >-
+          {{ states('sensor.prayer_next') }} prayer time in {{ states('sensor.prayer_city') }}.
 
 - id: prayer_times_morocco_asr
-  alias: "🕌 Prayer Notification - Asr"
+  alias: "Prayer - Asr"
   description: "Send a notification when it's time for Asr prayer"
+  mode: single
   trigger:
     - platform: time
       at: sensor.prayer_asr
   action:
     - service: notify.mobile_app_your_phone
       data:
-        title: "🌤️ {{ states('sensor.prayer_next') }}"
-        message: >
-          It is time for {{ states('sensor.prayer_next') }} prayer.
-          Time: {{ states('sensor.prayer_asr') }}
-          City: {{ states('sensor.prayer_city') }}
-        data:
-          icon: /local/prayer_times_morocco/icon.png
-          ttl: 0
-          priority: high
-          channel: prayer_times
+        title: "🌤️ Prayer Time - {{ states('sensor.prayer_asr') }}"
+        message: >-
+          {{ states('sensor.prayer_next') }} prayer time in {{ states('sensor.prayer_city') }}.
 
 - id: prayer_times_morocco_maghrib
-  alias: "🕌 Prayer Notification - Maghrib"
+  alias: "Prayer - Maghrib"
   description: "Send a notification when it's time for Maghrib prayer"
+  mode: single
   trigger:
     - platform: time
       at: sensor.prayer_maghrib
   action:
     - service: notify.mobile_app_your_phone
       data:
-        title: "🌇 {{ states('sensor.prayer_next') }}"
-        message: >
-          It is time for {{ states('sensor.prayer_next') }} prayer.
-          Time: {{ states('sensor.prayer_maghrib') }}
-          City: {{ states('sensor.prayer_city') }}
-        data:
-          icon: /local/prayer_times_morocco/icon.png
-          ttl: 0
-          priority: high
-          channel: prayer_times
+        title: "🌇 Prayer Time - {{ states('sensor.prayer_maghrib') }}"
+        message: >-
+          {{ states('sensor.prayer_next') }} prayer time in {{ states('sensor.prayer_city') }}.
 
 - id: prayer_times_morocco_ichaa
-  alias: "🕌 Prayer Notification - Isha"
+  alias: "Prayer - Isha"
   description: "Send a notification when it's time for Isha prayer"
+  mode: single
   trigger:
     - platform: time
       at: sensor.prayer_ichaa
   action:
     - service: notify.mobile_app_your_phone
       data:
-        title: "🌙 {{ states('sensor.prayer_next') }}"
-        message: >
-          It is time for {{ states('sensor.prayer_next') }} prayer.
-          Time: {{ states('sensor.prayer_ichaa') }}
-          City: {{ states('sensor.prayer_city') }}
-        data:
-          icon: /local/prayer_times_morocco/icon.png
-          ttl: 0
-          priority: high
-          channel: prayer_times
+        title: "🌙 Prayer Time - {{ states('sensor.prayer_ichaa') }}"
+        message: >-
+          {{ states('sensor.prayer_next') }} prayer time in {{ states('sensor.prayer_city') }}.
