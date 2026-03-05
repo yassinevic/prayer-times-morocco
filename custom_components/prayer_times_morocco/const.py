@@ -18,6 +18,7 @@ PRAYERS_NAMES = {
         "maghrib": "Maghrib",
         "ichaa": "Isha",
         "next": "Next Prayer",
+        "next_time": "Next Prayer Time",
         "date": "Date",
         "city": "City"
     },
@@ -29,6 +30,7 @@ PRAYERS_NAMES = {
         "maghrib": "المغرب",
         "ichaa": "العشاء",
         "next": "الصلاة القادمة",
+        "next_time": "وقت الصلاة القادمة",
         "date": "التاريخ",
         "city": "المدينة"
     }

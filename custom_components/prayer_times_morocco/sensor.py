@@ -14,6 +14,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     entities = [PrayerTimeSensor(coordinator, prayer) for prayer in PRAYERS]
     entities += [
         PrayerNextSensor(coordinator),
+        PrayerNextTimeSensor(coordinator),
         PrayerCitySensor(coordinator),
         PrayerDateSensor(coordinator),
     ]
@@ -94,6 +95,41 @@ class PrayerNextSensor(PrayerBaseEntity, SensorEntity):
                 except ValueError:
                     continue
         return PRAYERS_NAMES[self._coordinator.language]["fajr"] # If all prayers passed, Fajr is next
+
+
+class PrayerNextTimeSensor(PrayerBaseEntity, SensorEntity):
+    """Sensor that returns the TIME of the next upcoming prayer."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator, "next_time")
+
+        self.entity_id = "sensor.prayer_next_time"
+        self._attr_unique_id = f"{DOMAIN}_{self.city}_prayer_next_time".lower()
+        self._attr_name = PRAYERS_NAMES[coordinator.language]["next_time"]
+        self._attr_icon = "mdi:clock-fast"
+
+    @property
+    def native_value(self):
+        """Return the time (HH:MM) of the next prayer."""
+        if not self._coordinator.data or "prayers" not in self._coordinator.data:
+            return None
+
+        import datetime
+        now = datetime.datetime.now().time()
+
+        prayers = self._coordinator.data["prayers"]
+        for p_name in PRAYERS:
+            time_str = prayers.get(p_name)
+            if time_str:
+                try:
+                    h, m = map(int, time_str.split(':'))
+                    prayer_time = datetime.time(h, m)
+                    if now < prayer_time:
+                        return time_str  # Return HH:MM of next prayer
+                except ValueError:
+                    continue
+        # All prayers passed today — return Fajr time for tomorrow
+        return prayers.get("fajr")
 
 class PrayerCitySensor(PrayerBaseEntity, SensorEntity):
     def __init__(self, coordinator):
