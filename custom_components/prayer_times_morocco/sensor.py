@@ -10,6 +10,7 @@ from .const import DOMAIN, PRAYERS, PRAYERS_NAMES, CITY_TRANSLATIONS
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     
@@ -22,6 +23,33 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ]
     
     async_add_entities(entities, True)
+
+
+def get_active_prayers(coordinator):
+    """
+    Return the active prayer schedule based on current time.
+    After 3ichaa has passed, flip to tomorrow's prayers.
+    Falls back to today's prayers if tomorrow's data is not available.
+    """
+    if not coordinator.data or "prayers" not in coordinator.data:
+        return None
+
+    today_prayers = coordinator.data["prayers"]
+    tomorrow_prayers = coordinator.data.get("tomorrow_prayers")
+
+    # Check if 3ichaa has passed
+    ichaa_time_str = today_prayers.get("ichaa") or today_prayers.get("isha")
+    if ichaa_time_str:
+        try:
+            h, m = map(int, ichaa_time_str.split(':'))
+            if datetime.datetime.now().time() >= datetime.time(h, m):
+                # 3ichaa passed — use tomorrow's prayers if available
+                if tomorrow_prayers:
+                    return tomorrow_prayers
+        except ValueError:
+            pass
+
+    return today_prayers
 
 
 class PrayerBaseEntity(CoordinatorEntity):
@@ -55,7 +83,7 @@ class PrayerTimeSensor(PrayerBaseEntity, SensorEntity):
         
         lang = coordinator.language
         lang_name = PRAYERS_NAMES[lang][prayer_key]
-        
+
         self.entity_id = f"sensor.prayer_{prayer_key}"
         self._attr_unique_id = f"{DOMAIN}_{self.city}_prayer_{prayer_key}".lower()
         self._attr_name = f"{lang_name}"
@@ -63,8 +91,9 @@ class PrayerTimeSensor(PrayerBaseEntity, SensorEntity):
 
     @property
     def native_value(self):
-        if self._coordinator.data and "prayers" in self._coordinator.data:
-            return self._coordinator.data["prayers"].get(self._prayer)
+        prayers = get_active_prayers(self._coordinator)
+        if prayers:
+            return prayers.get(self._prayer)
         return None
 
 
@@ -82,11 +111,11 @@ class PrayerNextSensor(PrayerBaseEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the next prayer name based on current time."""
-        if not self._coordinator.data or "prayers" not in self._coordinator.data:
+        prayers = get_active_prayers(self._coordinator)
+        if not prayers:
             return None
 
         now = datetime.datetime.now().time()
-        prayers = self._coordinator.data["prayers"]
 
         for p_name in PRAYERS:
             time_str = prayers.get(p_name)
@@ -98,7 +127,7 @@ class PrayerNextSensor(PrayerBaseEntity, SensorEntity):
                 except ValueError:
                     continue
 
-        # All prayers passed today — next is Fajr (tomorrow)
+        # All prayers passed — Fajr is next (tomorrow's schedule already active at this point)
         return PRAYERS_NAMES[self._coordinator.language]["fajr"]
 
 
@@ -116,11 +145,11 @@ class PrayerNextTimeSensor(PrayerBaseEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the time (HH:MM) of the next prayer."""
-        if not self._coordinator.data or "prayers" not in self._coordinator.data:
+        prayers = get_active_prayers(self._coordinator)
+        if not prayers:
             return None
 
         now = datetime.datetime.now().time()
-        prayers = self._coordinator.data["prayers"]
 
         for p_name in PRAYERS:
             time_str = prayers.get(p_name)
@@ -132,10 +161,8 @@ class PrayerNextTimeSensor(PrayerBaseEntity, SensorEntity):
                 except ValueError:
                     continue
 
-        # All prayers passed today — return tomorrow's Fajr if available,
-        # fall back to today's Fajr as a safe default
-        tomorrow_prayers = self._coordinator.data.get("tomorrow_prayers", {})
-        return tomorrow_prayers.get("fajr") or prayers.get("fajr")
+        # All prayers passed — return Fajr (tomorrow's schedule already active at this point)
+        return prayers.get("fajr")
 
 
 class PrayerCitySensor(PrayerBaseEntity, SensorEntity):
@@ -169,6 +196,20 @@ class PrayerDateSensor(PrayerBaseEntity, SensorEntity):
 
     @property
     def native_value(self):
-        if self._coordinator.data:
-            return self._coordinator.data.get("date")
-        return None
+        """Return the active date — tomorrow's if 3ichaa has passed."""
+        if not self._coordinator.data:
+            return None
+
+        today_prayers = self._coordinator.data.get("prayers", {})
+        ichaa_time_str = today_prayers.get("ichaa") or today_prayers.get("isha")
+        if ichaa_time_str:
+            try:
+                h, m = map(int, ichaa_time_str.split(':'))
+                if datetime.datetime.now().time() >= datetime.time(h, m):
+                    tomorrow_date = self._coordinator.data.get("tomorrow_date")
+                    if tomorrow_date:
+                        return tomorrow_date
+            except ValueError:
+                pass
+
+        return self._coordinator.data.get("date")
