@@ -1,4 +1,6 @@
+import datetime
 import logging
+
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import DeviceEntryType
@@ -20,6 +22,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ]
     
     async_add_entities(entities, True)
+
 
 class PrayerBaseEntity(CoordinatorEntity):
     """Base class for all prayer sensors."""
@@ -44,6 +47,7 @@ class PrayerBaseEntity(CoordinatorEntity):
             entry_type=DeviceEntryType.SERVICE,
         )
 
+
 class PrayerTimeSensor(PrayerBaseEntity, SensorEntity):
     def __init__(self, coordinator, prayer_key):
         super().__init__(coordinator, prayer_key)
@@ -51,9 +55,7 @@ class PrayerTimeSensor(PrayerBaseEntity, SensorEntity):
         
         lang = coordinator.language
         lang_name = PRAYERS_NAMES[lang][prayer_key]
-        prefix = "Prayer " if lang == "english" else "صلاة "
         
-        # Conform to entity_id requirement: sensor.prayer_fajr
         self.entity_id = f"sensor.prayer_{prayer_key}"
         self._attr_unique_id = f"{DOMAIN}_{self.city}_prayer_{prayer_key}".lower()
         self._attr_name = f"{lang_name}"
@@ -65,7 +67,10 @@ class PrayerTimeSensor(PrayerBaseEntity, SensorEntity):
             return self._coordinator.data["prayers"].get(self._prayer)
         return None
 
+
 class PrayerNextSensor(PrayerBaseEntity, SensorEntity):
+    """Sensor that returns the NAME of the next upcoming prayer."""
+
     def __init__(self, coordinator):
         super().__init__(coordinator, "next")
         
@@ -79,22 +84,22 @@ class PrayerNextSensor(PrayerBaseEntity, SensorEntity):
         """Return the next prayer name based on current time."""
         if not self._coordinator.data or "prayers" not in self._coordinator.data:
             return None
-            
-        import datetime
+
         now = datetime.datetime.now().time()
-        
         prayers = self._coordinator.data["prayers"]
+
         for p_name in PRAYERS:
             time_str = prayers.get(p_name)
             if time_str:
                 try:
                     h, m = map(int, time_str.split(':'))
-                    prayer_time = datetime.time(h, m)
-                    if now < prayer_time:
+                    if now < datetime.time(h, m):
                         return PRAYERS_NAMES[self._coordinator.language][p_name]
                 except ValueError:
                     continue
-        return PRAYERS_NAMES[self._coordinator.language]["fajr"] # If all prayers passed, Fajr is next
+
+        # All prayers passed today — next is Fajr (tomorrow)
+        return PRAYERS_NAMES[self._coordinator.language]["fajr"]
 
 
 class PrayerNextTimeSensor(PrayerBaseEntity, SensorEntity):
@@ -114,22 +119,24 @@ class PrayerNextTimeSensor(PrayerBaseEntity, SensorEntity):
         if not self._coordinator.data or "prayers" not in self._coordinator.data:
             return None
 
-        import datetime
         now = datetime.datetime.now().time()
-
         prayers = self._coordinator.data["prayers"]
+
         for p_name in PRAYERS:
             time_str = prayers.get(p_name)
             if time_str:
                 try:
                     h, m = map(int, time_str.split(':'))
-                    prayer_time = datetime.time(h, m)
-                    if now < prayer_time:
-                        return time_str  # Return HH:MM of next prayer
+                    if now < datetime.time(h, m):
+                        return time_str
                 except ValueError:
                     continue
-        # All prayers passed today — return Fajr time for tomorrow
-        return prayers.get("fajr")
+
+        # All prayers passed today — return tomorrow's Fajr if available,
+        # fall back to today's Fajr as a safe default
+        tomorrow_prayers = self._coordinator.data.get("tomorrow_prayers", {})
+        return tomorrow_prayers.get("fajr") or prayers.get("fajr")
+
 
 class PrayerCitySensor(PrayerBaseEntity, SensorEntity):
     def __init__(self, coordinator):
@@ -149,6 +156,7 @@ class PrayerCitySensor(PrayerBaseEntity, SensorEntity):
         if self._coordinator.language == "arabic":
             return CITY_TRANSLATIONS.get(city_name, city_name)
         return city_name
+
 
 class PrayerDateSensor(PrayerBaseEntity, SensorEntity):
     def __init__(self, coordinator):
