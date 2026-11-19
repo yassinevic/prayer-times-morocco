@@ -105,10 +105,11 @@ class TestCoordinator(unittest.IsolatedAsyncioTestCase):
 
         session.get.return_value.__aenter__.return_value = mock_resp
 
-        data = await _fetch_month_data(session, 2026, 11, 58)
-        self.assertEqual(data["annee"], 2026)
-        self.assertEqual(data["mois"], 11)
-        self.assertEqual(len(data["villes"]), 2)
+        with patch("custom_components.prayer_times_morocco.coordinator._save_cache"):
+            data = await _fetch_month_data(session, 2026, 11, 58)
+            self.assertEqual(data["annee"], 2026)
+            self.assertEqual(data["mois"], 11)
+            self.assertEqual(len(data["villes"]), 2)
 
     async def test_fetch_prayer_times_same_month(self):
         session = MagicMock()
@@ -118,7 +119,8 @@ class TestCoordinator(unittest.IsolatedAsyncioTestCase):
 
         session.get.return_value.__aenter__.return_value = mock_resp
 
-        with patch("custom_components.prayer_times_morocco.coordinator.date") as mock_date:
+        with patch("custom_components.prayer_times_morocco.coordinator.date") as mock_date, \
+             patch("custom_components.prayer_times_morocco.coordinator._save_cache"):
             mock_date.today.return_value = date(2026, 11, 1)
 
             result = await fetch_prayer_times(session, 58, "Casablanca")
@@ -183,7 +185,8 @@ class TestCoordinator(unittest.IsolatedAsyncioTestCase):
 
         session.get.return_value.__aenter__.side_effect = [resp1, resp2]
 
-        with patch("custom_components.prayer_times_morocco.coordinator.date") as mock_date:
+        with patch("custom_components.prayer_times_morocco.coordinator.date") as mock_date, \
+             patch("custom_components.prayer_times_morocco.coordinator._save_cache"):
             mock_date.today.return_value = date(2026, 11, 30)
 
             with patch(
@@ -213,7 +216,8 @@ class TestCoordinator(unittest.IsolatedAsyncioTestCase):
 
         session.get.return_value.__aenter__.side_effect = [resp1, resp2]
 
-        with patch("custom_components.prayer_times_morocco.coordinator.date") as mock_date:
+        with patch("custom_components.prayer_times_morocco.coordinator.date") as mock_date, \
+             patch("custom_components.prayer_times_morocco.coordinator._save_cache"):
             mock_date.today.return_value = date(2026, 11, 30)
 
             with patch(
