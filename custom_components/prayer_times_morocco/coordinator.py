@@ -1,5 +1,7 @@
+import asyncio
 import json
 import logging
+import os
 import re
 from datetime import date, timedelta
 
@@ -11,6 +13,40 @@ from .const import DOMAIN, PRAYERS, CITIES_MAP, UPDATE_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "data")
+
+
+def _save_cache(month: int, data: dict) -> None:
+    """Save month prayer data to local disk cache named after the month."""
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        file_path = os.path.join(CACHE_DIR, f"horaires-{month:02d}.json")
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        _LOGGER.debug("Cached prayer times for month %02d to %s", month, file_path)
+    except Exception as err:
+        _LOGGER.warning("Could not save local cache for month %02d: %s", month, err)
+
+
+def _load_cache(month: int) -> dict | None:
+    """Load month prayer data from local disk cache if available."""
+    paths_to_check = [
+        os.path.join(CACHE_DIR, f"horaires-{month:02d}.json"),
+        os.path.join(CACHE_DIR, f"{month:02d}.json"),
+        os.path.join(CACHE_DIR, f"horaires-{month}.json"),
+        os.path.join(CACHE_DIR, f"{month}.json"),
+    ]
+    for path in paths_to_check:
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                _LOGGER.info("Loaded prayer times for month %02d from local cache: %s", month, path)
+                return data
+            except Exception as err:
+                _LOGGER.warning("Failed to read cache file %s: %s", path, err)
+    return None
+
 
 async def _fetch_month_data(session: aiohttp.ClientSession, year: int, month: int, city_id: int) -> dict:
     url = f"https://www.habous.gov.ma/data/horaires-{year}-{month:02d}.js?v={city_id}"
@@ -18,26 +54,45 @@ async def _fetch_month_data(session: aiohttp.ClientSession, year: int, month: in
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "*/*",
     }
+    text = None
     try:
         async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=15), ssl=False) as resp:
             resp.raise_for_status()
             text = await resp.text(encoding="utf-8")
     except Exception as err:
         _LOGGER.debug("Fetch with ssl=False failed (%s), retrying with default SSL context", err)
-        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as resp:
-            resp.raise_for_status()
-            text = await resp.text(encoding="utf-8")
+        try:
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                resp.raise_for_status()
+                text = await resp.text(encoding="utf-8")
+        except Exception as retry_err:
+            _LOGGER.warning("Network request to Habous failed (%s) — falling back to local cache", retry_err)
 
-    match = re.search(r"push\s*\(\s*(\{.*\})\s*\)", text, re.DOTALL)
-    if match:
-        return json.loads(match.group(1))
+    if text is not None:
+        try:
+            match = re.search(r"push\s*\(\s*(\{.*\})\s*\)", text, re.DOTALL)
+            if match:
+                data = json.loads(match.group(1))
+            else:
+                start = text.find("{")
+                end = text.rfind("}") + 1
+                if start != -1 and end > start:
+                    data = json.loads(text[start:end])
+                else:
+                    raise ValueError(f"Impossible d'extraire les données JSON de {url}")
 
-    start = text.find("{")
-    end = text.rfind("}") + 1
-    if start != -1 and end > start:
-        return json.loads(text[start:end])
+            # Persist to local disk cache asynchronously
+            await asyncio.to_thread(_save_cache, month, data)
+            return data
+        except Exception as parse_err:
+            _LOGGER.warning("Failed to parse remote response (%s) — falling back to local cache", parse_err)
 
-    raise ValueError(f"Impossible d'extraire les données JSON de {url}")
+    # Fallback to local disk cache if offline or parse error
+    cached_data = await asyncio.to_thread(_load_cache, month)
+    if cached_data is not None:
+        return cached_data
+
+    raise ValueError(f"Impossible de récupérer les horaires pour le mois {month} (site injoignable et aucun cache local disponible)")
 
 
 def _extract_city_prayers(month_data: dict, city_id: int, city_name: str, day: int) -> list:

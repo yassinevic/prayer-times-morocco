@@ -231,8 +231,31 @@ class TestCoordinator(unittest.IsolatedAsyncioTestCase):
         session = MagicMock()
         session.get.side_effect = Exception("Connection error")
 
-        with self.assertRaises(UpdateFailed):
-            await fetch_prayer_times(session, 58, "Casablanca")
+        with patch("custom_components.prayer_times_morocco.coordinator._load_cache", return_value=None):
+            with self.assertRaises(UpdateFailed):
+                await fetch_prayer_times(session, 58, "Casablanca")
+
+    async def test_fetch_prayer_times_offline_fallback_to_cache(self):
+        session = MagicMock()
+        session.get.side_effect = Exception("Habous offline")
+
+        with patch("custom_components.prayer_times_morocco.coordinator._load_cache", return_value=SAMPLE_MONTH_DATA):
+            with patch("custom_components.prayer_times_morocco.coordinator.date") as mock_date:
+                mock_date.today.return_value = date(2026, 11, 1)
+                result = await fetch_prayer_times(session, 58, "Casablanca")
+                self.assertEqual(result["city"], "Casablanca")
+                self.assertEqual(result["date"], "2026-11-01")
+                self.assertEqual(result["prayers"]["fajr"], "05:20")
+
+    def test_save_and_load_cache(self):
+        from custom_components.prayer_times_morocco.coordinator import _save_cache, _load_cache, CACHE_DIR
+        _save_cache(99, SAMPLE_MONTH_DATA)
+        loaded = _load_cache(99)
+        self.assertIsNotNone(loaded)
+        self.assertEqual(loaded["annee"], 2026)
+        test_path = os.path.join(CACHE_DIR, "horaires-99.json")
+        if os.path.exists(test_path):
+            os.remove(test_path)
 
 
 if __name__ == "__main__":

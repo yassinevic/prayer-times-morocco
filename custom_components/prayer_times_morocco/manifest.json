@@ -1,7 +1,7 @@
 {
   "domain": "prayer_times_morocco",
   "name": "Morocco Prayer Times",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "documentation": "https://github.com/yassinevic/prayer-times-morocco",
   "requirements": ["aiohttp>=3.9.0"],
   "codeowners": ["@yassinevic"],
