@@ -107,6 +107,23 @@ service: prayer_times_morocco.refresh
 
 ---
 
+## Testing & Verification
+
+You can test data fetching and run the unit test suite locally:
+
+```bash
+# Default (Casablanca, English)
+python run.py
+
+# Custom city & language
+python run.py --city Rabat --lang arabic
+
+# Run unit tests only
+python run.py --test-only
+```
+
+---
+
 ## Data Source
 
 All prayer times are fetched from the official Moroccan Ministry of Islamic Affairs website:  
