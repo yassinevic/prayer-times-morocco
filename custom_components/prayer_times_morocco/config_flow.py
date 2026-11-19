@@ -22,23 +22,23 @@ class PrayerTimesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             city = user_input["city"]
             city_id = CITIES_MAP.get(city)
 
+            await self.async_set_unique_id(city)
+            self._abort_if_unique_id_configured()
+
             try:
-                # Test scraping before accepting
+                # Test fetching prayer times before accepting
                 session = client.async_get_clientsession(self.hass)
                 await fetch_prayer_times(session, city_id, city)
-                
-                await self.async_set_unique_id(city)
-                self._abort_if_unique_id_configured()
-                
+            except Exception as e:
+                _LOGGER.error("Erreur de test de connexion : %s", e)
+                errors["base"] = "cannot_connect"
+            else:
                 from .const import CITY_TRANSLATIONS
                 display_city = city
                 if user_input.get("language") == "arabic":
                     display_city = CITY_TRANSLATIONS.get(city, city)
                     
                 return self.async_create_entry(title=f"Morocco Prayer Times - {display_city}", data=user_input)
-            except Exception as e:
-                _LOGGER.error("Erreur de test de connexion : %s", e)
-                errors["base"] = "cannot_connect"
 
         # Generate SelectSelector options alphabetically
         options = [city for city in sorted(CITIES_MAP.keys())]

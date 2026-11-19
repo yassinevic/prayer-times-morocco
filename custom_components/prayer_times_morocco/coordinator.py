@@ -14,9 +14,19 @@ _LOGGER = logging.getLogger(__name__)
 
 async def _fetch_month_data(session: aiohttp.ClientSession, year: int, month: int, city_id: int) -> dict:
     url = f"https://www.habous.gov.ma/data/horaires-{year}-{month:02d}.js?v={city_id}"
-    async with session.get(url, timeout=aiohttp.ClientTimeout(total=15), ssl=False) as resp:
-        resp.raise_for_status()
-        text = await resp.text()
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+    }
+    try:
+        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=15), ssl=False) as resp:
+            resp.raise_for_status()
+            text = await resp.text(encoding="utf-8")
+    except Exception as err:
+        _LOGGER.debug("Fetch with ssl=False failed (%s), retrying with default SSL context", err)
+        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            resp.raise_for_status()
+            text = await resp.text(encoding="utf-8")
 
     match = re.search(r"push\s*\(\s*(\{.*\})\s*\)", text, re.DOTALL)
     if match:
